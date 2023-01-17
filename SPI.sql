@@ -57,3 +57,5 @@ SELECT s.*, sp.name species
 FROM Snakes s
 JOIN Species sp ON sp.id = s.species_id
 WHERE s.id = 3
+
+SELECT MAX(id) FROM Snakes

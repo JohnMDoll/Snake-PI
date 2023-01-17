@@ -1,7 +1,7 @@
 import json
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from views import get_all_things, get_one_thing, get_snakes_by_species
+from views import get_all_things, get_one_thing, get_snakes_by_species, create_snake
 
 class HandleRequests(BaseHTTPRequestHandler):
     """handles and fetch calls from client"""
@@ -29,13 +29,11 @@ class HandleRequests(BaseHTTPRequestHandler):
 
     def do_GET(self):
         """handles requests for data from sql db"""
-        # self._set_headers(200) need to modify this to only set 200 if good GET request
         response = {}
         real_dictionaries = ("owners", "snakes", "species")
         # Parse URL and store entire tuple in a variable
         parsed = self.parse_url(self.path)
         (resource, id, query_params) = parsed
-        # If the path does not include a query parameter, continue with the original if block
         if '?' not in self.path and resource in real_dictionaries:
 
             if id is not None:
@@ -43,7 +41,7 @@ class HandleRequests(BaseHTTPRequestHandler):
             elif id is None:
                 response = get_all_things(resource)
 
-        elif resource in real_dictionaries: # There is a ? in the path, run the query param functions
+        elif resource == "snakes" and query_params[0] == "species":
             (resource, id, query_params) = parsed
 
             if query_params[0] == "species" and resource == 'snakes':
@@ -58,10 +56,8 @@ class HandleRequests(BaseHTTPRequestHandler):
             self._set_headers(200)
         self.wfile.write(json.dumps(response).encode())
 
-    # Here's a method on the class that overrides the parent's method.
-    # It handles any POST request.
     def do_POST(self):
-        """handles post requests for new snakes"""
+        """handles post request for new snake"""
 
         content_len = int(self.headers.get('content-length', 0))
         post_body = self.rfile.read(content_len)
@@ -72,16 +68,17 @@ class HandleRequests(BaseHTTPRequestHandler):
         # Parse the URL
         (resource, id, query) = self.parse_url(self.path)
 
-        # Initialize new things
         new_snake = None
 
         if resource == "snakes":
-            self._set_headers(201)
             new_snake = create_snake(post_body)
-            self.wfile.write(json.dumps(new_snake).encode())
+            if len(new_snake) != 6:
+                self._set_headers(400)
+            else:
+                self._set_headers(201)
         else:
-            self._set_headers(400)
-            # send msg saying what properties are missing from snake post
+            self._set_headers(404)
+        self.wfile.write(json.dumps(new_snake).encode())
 
     def do_PUT(self):
         """Rejects PUT requests to the server"""

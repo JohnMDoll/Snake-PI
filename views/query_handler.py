@@ -129,3 +129,31 @@ def get_snakes_by_species(species_id):
         except TypeError:
             return None
     return things
+
+def create_snake(new_snake):
+    """POSTs new snake to db if all properties provided"""
+    try:
+        if (new_snake['name'] and new_snake['owner_id'] and new_snake['species_id'] and new_snake['gender'] and new_snake['color']):
+
+            with sqlite3.connect("./SPI.sqlite3") as conn:
+                # Just use these. It's a Black Box.
+                conn.row_factory = sqlite3.Row
+                db_cursor = conn.cursor()
+                db_cursor.execute( "SELECT MAX(id) FROM Snakes" )
+                new_snake['id'] = db_cursor.fetchone()[0] + 1
+                db_cursor.execute(
+                    """
+                    INSERT INTO Snakes
+                        (id, name, owner_id, species_id, gender, color)
+                    VALUES
+                        ( ?, ?, ?, ?, ?, ?)
+                    """, (new_snake['id'], new_snake['name'], new_snake['owner_id'], new_snake['species_id'], new_snake['gender'], new_snake['color'])
+                )
+                return new_snake
+    except KeyError:
+        expected_keys = ['name', 'owner_id', 'species_id', 'gender', 'color']
+        return_message = "New snake missing the following information: "
+        for key in expected_keys:
+            if key not in new_snake:
+                return_message += key + ", "
+        return return_message
